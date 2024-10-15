@@ -1,0 +1,264 @@
+Running/Executeing testcase mandates
+1. testcase code must be written inside a function/method
+2. method/function must start with Name "test"   --to consider function as testcase
+3. if you want to run entire file or directory of testcases then directory and file name should start with "test"
+
+if you want to run specific testcase
+    -- pytest -k testcase/methodname foldername         ----(-k) for perticular tescase give testcase name and its folder
+    ---pytest -s  -v -k  test_tc4  Pytest_Project_API
+if you want to run all testcases of perticular file
+    -- pytest Pytest_Project_API/test_tc1.py    ----filename
+if you want to run multiple file in specific folder then ( testcase files must start with "test")
+    -- pytest Pytest_Project_API        ----foldername
+    -- pytest -v Pytest_Project_API     ----(-v) shows detailed result of output(v=verbose)
+    -- pytest -s -v Pytest_Project_API     ----(-s) use to display print statements on consol
+
+
+SKIP TESTCASE
+    To skip any testcase we use skip decorator of pytest.mark class above perticular tc/method which we wanna skip
+        @pytest.mark.skip("dev will fix in next build")      ----decorator
+        def test_tc1():                   ----testcase
+            print("testcase1")
+
+SKIPIF TESTCASE
+    @pytest.mark.skipif(condition,reason)                 ----decorator
+    example -
+    a=3
+    @pytest.mark.skipif(a>2,reason="skip if a>2")
+        def test_tc1():                   ----testcase
+            print("testcase1")
+    output -
+    Pytest_Project_API/test_tc1.py::test_tc1 SKIPPED (dev will fix in next build)
+    Pytest_Project_API/test_tc1.py::test_tc2 SKIPPED (skip if a>2)
+
+Grouping of TC/TAGS -
+    Need - if we want group some tc's and want to run those in chunk (smoke, sanity, regression)
+    How to add tags.
+    1. tags are pytest.mark class you just need to add tag name example-
+    2. here smoke and sanity tag added to tc5 and tc6
+        @pytest.mark.smoke
+        def test_tc5():
+            print("testcase1")
+
+        @pytest.mark.sanity
+        def test_tc6():
+            print("testcase2")
+    3. to disable pytest warning for tags -
+        1. also you have to register all the tags under marker for that, create one PyTest.ini file and register tags
+            [pytest]
+            markers =
+                smoke: this is for smoke testcase execution
+                sanity: this is for sanity testcase execution
+        2. Or add "--disable-pytest-warnings" to exceution command before tag
+            ex -  pytest -s  -v --disable-pytest-warnings -m Tag  Foldername
+
+How to Run Tags testCases -
+    (-m) is use for running testcases using tags
+    1. to run specific tag cases -
+        pytest -s  -v --disable-pytest-warnings -m Tag  Foldername
+        ex-  pytest -s  -v --disable-pytest-warnings -m smoke  Pytest_Project_API
+    2. to run testcases in either one of the tag(OR)
+         pytest -s  -v --disable-pytest-warnings -m "tag1 or tag2"  foldername
+         ex- pytest -s  -v --disable-pytest-warnings -m "smoke or sanity"  Pytest_Project_API
+    3. to run testcases that belong to both tags(AND)
+         pytest -s  -v --disable-pytest-warnings -m "tag1 and tag2"  foldername
+         ex- pytest -s  -v --disable-pytest-warnings -m "smoke and sanity"  Pytest_Project_API
+    4. to run all testcases exclude specific tag cases -
+        pytest -s  -v --disable-pytest-warnings -m "not Tag"  Foldername
+        ex-  pytest -s  -v --disable-pytest-warnings -m "not smoke"  Pytest_Project_API
+
+ASSERTION
+    to check actual and expected value(comparisn/validation)
+        syntax(equalTo) -
+            assert actual_value==expected_value,"msg to be display if assert fails"
+        syntax(NotequalTo) -
+            assert actual_value!=expected_value,"msg to be display if assert fails"
+    example -
+        expected = 11
+        @pytest.mark.smoke
+        def test_tc5():
+            print("testcase1")
+            actual = 12
+            assert actual==expected,"actual and expected not matched"
+            assert actual != expected, "actual and expected matched"
+
+FIXTURE(Pre_Requisites/TeardownSteps):
+    fixtures use to do set up and teardown steps for different scopes as below
+    Pytest provides four levels of fixture scopes: Default scope is function
+        1. Function (Set up and tear down once for each test function)
+        2. Class (Set up and tear down once for each test class)
+        3. Module (Set up and tear down once for each test module/file)
+        4. Session (Set up and tear down once for each test session i.e comprising one or more test files)
+    How to set up fixtures -
+        1. create method where add set up code then write "yield" and add teardown code to the same method.
+        2. add "@pytest.fixture(scope="module")" decorator to mark method as fixture.and add scope as well
+        3. add this method as input to testcases.
+        example -
+            @pytest.fixture(scope="function")
+            def set_up():
+                print(" code runs at the start of testcase")
+                print("__________________________________")
+                yield
+                print(" code runs at the end of testcase")
+                print("__________________________________")
+
+            @pytest.mark.smoke
+            def test_tc3(set_up):
+                print("testcase3")
+
+            @pytest.mark.sanity
+            def test_tc4(set_up):
+                print("testcase4")
+
+Reports in PyTest
+    1. install pytest-html library (pip install pytest-html)
+    2. To generate pytest_html_report two ways -
+        1. while running add "--html=report.html" after pytest
+            example - pytest --html=report.html -s  -v --disable-pytest-warnings -m "smoke or sanity"  Pytest_Project_API
+        2. or add parameter to ini file  - "addopts = --html=report.html"
+
+
+Request Chaining -
+    Passing the response parameter as input to next API is called request chaining
+    example -
+            def test_tc6():
+            global id
+            api_url = "https://thetestingworldapi.com/api/studentsDetails"
+            f = open("Pytest_Project_API/Student_Management_system_Project_Pytest/student_details.json", 'r')
+            request_json = json.loads(f.read())
+            response = requests.post(api_url, params=request_json)
+            print(response.text)
+            id = jsonpath.jsonpath(response.json(), 'id')
+            print(id[0])  -----------------------------------------------this id is used as input to next request
+
+
+            def test_tc7():
+            api_url = "https://thetestingworldapi.com/api/studentsDetails/"+str(id[0])---- id of preveious repsonse is used as input to this response
+            response = requests.get(api_url)
+            print(response.status_code)
+            assert response.status_code == 200
+
+
+Authentication Types -
+    Basic Authentication -
+        from requests.auth import HTTPBasicAuth -
+            example -
+                import requests
+                from requests.auth import HTTPBasicAuth
+
+                def test_basicAuth():
+                    res = requests.get("https://api.github.com/user", auth=HTTPBasicAuth('mrubarapatre198@gmail.com', 'Elsa@408408'))
+                print(res.text)
+
+    OAuth Authentication -
+    How to use -
+        1. send request to generate Token
+        2. save to token in variable
+        3. use this token as header in further requests
+    example -
+        def test_OAuth():
+
+        #get Token through below request(to get token we have to provide- grant type, Username, Password)
+        request_data = {'grant_type':'test','Username':'admin','Password':'admin'}
+        res = requests.get("https://thetestingworldapi.com/Token", request_data)
+        token = jsonpath.jsonpath(res.json(),'access_Token')
+        token = token[0]
+        print(res.text)
+
+        #use token as header in this request
+        header_data ={'Authorization':'Bearer '+token}
+        res = requests.get("https://thetestingworldapi.com/api/StDetails/1104", headers=header_data)
+        print(res.text)
+
+Allure Reporting -
+    its a open source framework designed to create test execution reports.
+    any Reports are generated in two steps -
+    1. During test execution a small library call adapter is attached to testing framework saves information about executed tests in json file.
+    2. During report generation this json file is transformed into html report this can be done using command line tool or ci tool or build tool.
+
+    Installation steps -
+    1. Pip install allure-pytest
+    2. set up cmd line tool for converting json file to html report
+        1. install java 8 +
+        2. install node.js
+        3. install allure cmd line tool
+            npm install -g allure-commandline--save-dev  ----in cmd paste command
+
+    Allure in pytest -
+        2. Generate Allure report in json format -
+            1. Create a folder where you want to generate report.
+            2. run below cmd in terminal to generate json format of test report
+                pytest --alluredir Pytest_Project_API\Reports  Pytest_Project_API  -------pytest --alluredir "folderpathtosturereport" "testcasefolder"
+
+        3. convert json report to html format
+            open computer cmd and type below command -
+            allure serve Robot_course\Pytest_Project_API\Reports  ---allure serve "jsonreportsfolderPath"
+            the report will open automatically
+
+        4. Create local repository -
+            create folder in local
+            do gitbash here inside folder
+            then put command -
+            git init      --------commamd to make folder a local repository
+
+        5. Add remote repository in github
+            Take url of your remote repository from github-
+                https://github.com/SDETMrunali/Pytest_API_UI_Automation.git
+            in gitbash do -
+                git remote add origin "https://github.com/SDETMrunali/Pytest_API_UI_Automation.git"
+
+
+
+        5. Git commit files -
+            git has three stages -
+            1. untracked once make any changes in local repo --- untrack  stage
+            2. when you do command - git add . -----staged  stage
+            3. command - git commit -m 'commitcode'  -----tracked stage
+
+        6.  if want to undo commit -
+            command - git reset HEAD filename
+            if want to undo last commit -
+            command - git reset HEAD~1
+            if you want to check previous commits
+            command - git log
+            BEFORE commit If you want to check what changes you made in file -
+            command -  git diff filename
+            If you want to discard the change you made
+            command - git checkout -- filename
+            to check remote repository
+            command - git remote -v
+            after commit how to send local repository changes in remote repo -
+            git push origin master
+
+        7. Clone code from Remote Repo to local repository-
+            git clone "URL of the repo"
+            git clone "https://github.com/SDETMrunali/Pytest_API_UI_Automation.git"
+
+
+
+
+GIT and GITHUB -
+Git
+    -its a source code management system --(alternative of git - SVN, TFS)
+     use to share, manage code among team members.
+        if any team member changes my code, edit my code i can take track of my code changes.
+    Repository -
+        where we are sharing our code we are placing it somewhere, it can be a remote location
+         or share folder its called repository
+        when we work with git we create one local repository which will be on my system and one remote repository
+    Features of git -
+        1. Track changes in file.
+        2. Versioning and Branching ( can create branches of master branch through jenkins)
+        3. compare code
+        4. Merge Branch
+        5. Compare branches
+
+GITHUB -
+        on github we can create remote repository.
+        its a web based remote repository hosting service
+
+How to set up GIT and GITHUB for project -
+    1. create account on github.
+    2. on github create new repository
+    3. Download GITBASH (for git )
+    4. global commands to configure git for machine first time -
